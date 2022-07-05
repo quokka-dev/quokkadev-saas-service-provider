@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using QuokkaDev.Saas.Abstractions;
 using QuokkaDev.Saas.DependencyInjection;
+using System;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -16,13 +17,15 @@ namespace QuokkaDev.Saas.ServiceProvider.Tests
         }
 
         [Fact(DisplayName = "Different scopes should be created for different tenants")]
-        public async Task Different_Scopes_Should_Be_Created_For_Different_Tenants()
+        public void Different_Scopes_Should_Be_Created_For_Different_Tenants()
         {
             // Arrange
-            FakeTenantAccessService service = new FakeTenantAccessService();
+            FakeTenantAccessService service = new();
             MultiTenantContainer<Tenant<int>, int> container;
             IContainer applicationContainer;
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
             (container, applicationContainer) = GetMultiTenantContainer(service);
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
 
             // Act
             var scope1 = container.GetCurrentTenantScope();
@@ -40,10 +43,10 @@ namespace QuokkaDev.Saas.ServiceProvider.Tests
         }
 
         [Fact(DisplayName = "No tenants should return root scope")]
-        public async Task No_Tenants_Should_Return_Root_Scope()
+        public void No_Tenants_Should_Return_Root_Scope()
         {
             // Arrange
-            FakeTenantAccessService service = new FakeTenantAccessService();
+            FakeTenantAccessService service = new();
             MultiTenantContainer<Tenant<int>, int> container;
             IContainer applicationContainer;
             (container, applicationContainer) = GetMultiTenantContainer(service);
@@ -58,27 +61,21 @@ namespace QuokkaDev.Saas.ServiceProvider.Tests
         }
 
         [Fact(DisplayName = "MultiTenantContainer should work as expected")]
-        public async Task MultiTenantContainer_Should_Work_As_Expected()
+        public void MultiTenantContainer_Should_Work_As_Expected()
         {
             // Arrange
-            FakeTenantAccessService service = new FakeTenantAccessService();
+            FakeTenantAccessService service = new();
             MultiTenantContainer<Tenant<int>, int> container;
             IContainer applicationContainer;
             (container, applicationContainer) = GetMultiTenantContainer(service);
 
             // Act
-            service.SetTenant(null);
+            service.SetTenant(null!);
 
             var scope1 = container.BeginLifetimeScope();
             var scope2 = container.BeginLifetimeScope("MyTag");
-            var scope3 = container.BeginLifetimeScope("MyTag2", builder =>
-            {
-                builder.RegisterType<FakeGenericService>().AsSelf().InstancePerDependency();
-            });
-            var scope4 = container.BeginLifetimeScope(builder =>
-            {
-                builder.RegisterType<FakeGenericService>().AsSelf().InstancePerLifetimeScope();
-            });
+            var scope3 = container.BeginLifetimeScope("MyTag2", builder => builder.RegisterType<FakeGenericService>().AsSelf().InstancePerDependency());
+            var scope4 = container.BeginLifetimeScope(builder => builder.RegisterType<FakeGenericService>().AsSelf().InstancePerLifetimeScope());
 
             var service1 = container.ResolveOptional<FakeGenericService>();
             var service2 = scope3.Resolve<FakeGenericService>();
@@ -103,7 +100,46 @@ namespace QuokkaDev.Saas.ServiceProvider.Tests
             service3.Should().BeSameAs(service4);
         }
 
-        private (MultiTenantContainer<Tenant<int>, int> Container, IContainer RootContainer) GetMultiTenantContainer(FakeTenantAccessService service)
+        [Fact(DisplayName = "Wrapped properties should works as expected")]
+        public void Wrapped_Properties_Should_Works_As_Expected()
+        {
+            // Arrange
+            FakeTenantAccessService service = new();
+            MultiTenantContainer<Tenant<int>, int> container;
+            IContainer applicationContainer;
+            (container, applicationContainer) = GetMultiTenantContainer(service);
+
+            // Act
+
+            service.SetTenant(null!);
+            var scope1 = container.GetCurrentTenantScope();
+
+            // Assert
+            container.DiagnosticSource.Should().BeSameAs(applicationContainer.DiagnosticSource);
+            container.Disposer.Should().BeSameAs(scope1.Disposer);
+            container.Tag.Should().BeSameAs(scope1.Tag);
+        }
+
+        [Fact(DisplayName = "Container should be properly disposed")]
+        public void Container_Should_Be_Properly_Disposed()
+        {
+            // Arrange
+            FakeTenantAccessService service = new();
+            MultiTenantContainer<Tenant<int>, int> container;
+            IContainer applicationContainer;
+            (container, applicationContainer) = GetMultiTenantContainer(service, (tenant, builder) => builder.RegisterType<FakeGenericService>().AsSelf().InstancePerLifetimeScope());
+
+            // Act
+            var scope1 = container.GetCurrentTenantScope();
+            var service1 = scope1.Resolve<FakeGenericService>();
+            container.Dispose();
+            var service2Invocation = () => scope1.Resolve<FakeGenericService>();
+            // Assert
+            service1.Should().NotBeNull();
+            service2Invocation.Should().Throw<ObjectDisposedException>();
+        }
+
+        private static (MultiTenantContainer<Tenant<int>, int> Container, IContainer RootContainer) GetMultiTenantContainer(FakeTenantAccessService service, Action<Tenant<int>, ContainerBuilder>? config = null)
         {
             IServiceCollection services = new ServiceCollection();
             services.AddMultiTenancy<Tenant<int>, int>()
@@ -113,13 +149,9 @@ namespace QuokkaDev.Saas.ServiceProvider.Tests
             builder.Populate(services);
             var applicationContainer = builder.Build();
 
-            MultiTenantContainer<Tenant<int>, int> container = new MultiTenantContainer<Tenant<int>, int>(
-                applicationContainer,
-                (tenant, builder) =>
-                {
-
-                }
-            );
+#pragma warning disable RCS1163 // Unused parameter.
+            MultiTenantContainer<Tenant<int>, int> container = new(applicationContainer, config ?? ((tenant, builder) => { }));
+#pragma warning restore RCS1163 // Unused parameter.
             return (container, applicationContainer);
         }
     }

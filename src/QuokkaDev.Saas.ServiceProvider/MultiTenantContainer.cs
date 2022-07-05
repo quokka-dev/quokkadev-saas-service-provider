@@ -36,6 +36,9 @@ namespace QuokkaDev.Saas.ServiceProvider
         {
             _tenantContainerConfiguration = containerConfiguration;
             _applicationContainer = applicationContainer;
+            _applicationContainer.ChildLifetimeScopeBeginning += ApplicationContainer_ChildLifetimeScopeBeginning;
+            _applicationContainer.CurrentScopeEnding += ApplicationContainer_CurrentScopeEnding;
+            _applicationContainer.ResolveOperationBeginning += ApplicationContainer_ResolveOperationBeginning;
         }
 
         /// <summary>
@@ -54,7 +57,7 @@ namespace QuokkaDev.Saas.ServiceProvider
         /// <returns></returns>
         public ILifetimeScope GetCurrentTenantScope()
         {
-            return GetTenantScope(GetCurrentTenant()?.Identifier);
+            return GetTenantScope(GetCurrentTenant().Identifier);
         }
 
         /// <summary>
@@ -143,6 +146,21 @@ namespace QuokkaDev.Saas.ServiceProvider
             Dispose(true);
             GC.SuppressFinalize(this);
             return ValueTask.CompletedTask;
+        }
+
+        private void ApplicationContainer_ResolveOperationBeginning(object? sender, ResolveOperationBeginningEventArgs e)
+        {
+            this.ResolveOperationBeginning?.Invoke(sender, e);
+        }
+
+        private void ApplicationContainer_CurrentScopeEnding(object? sender, LifetimeScopeEndingEventArgs e)
+        {
+            this.CurrentScopeEnding?.Invoke(sender, e);
+        }
+
+        private void ApplicationContainer_ChildLifetimeScopeBeginning(object? sender, LifetimeScopeBeginningEventArgs e)
+        {
+            this.ChildLifetimeScopeBeginning?.Invoke(sender, e);
         }
     }
 }

@@ -17,7 +17,11 @@ public class ServiceCollectionExtensionsUnitTest
         var mock = new Mock<IHostBuilder>();
 
         // Act
+#pragma warning disable RCS1196 // Call extension method as instance method.
+#pragma warning disable RCS1163 // Unused parameter.
         ServiceCollectionExtensions.UseMultiTenantServiceProviderFactory<Tenant<int>, int>(mock.Object, (tenant, container) => { });
+#pragma warning restore RCS1163 // Unused parameter.
+#pragma warning restore RCS1196 // Call extension method as instance method.
 
         // Assert
         mock.Verify(m => m.UseServiceProviderFactory(It.IsAny<MultiTenantServiceProviderFactory<Tenant<int>, int>>()), Times.Once);
@@ -30,10 +34,12 @@ public class ServiceCollectionExtensionsUnitTest
         var mock = new Mock<IApplicationBuilder>();
 
         // Act
+#pragma warning disable RCS1196 // Call extension method as instance method.
         ServiceCollectionExtensions.UseMultiTenantContainer<Tenant<int>, int>(mock.Object);
+#pragma warning restore RCS1196 // Call extension method as instance method.
 
         // Assert
-        mock.Invocations.Where(invocation => invocation.Method.Name.StartsWith("Use"))
-            .Single().Should().NotBeNull();
+        mock.Invocations.Single(invocation => invocation.Method.Name.StartsWith("Use"))
+           .Should().NotBeNull();
     }
 }

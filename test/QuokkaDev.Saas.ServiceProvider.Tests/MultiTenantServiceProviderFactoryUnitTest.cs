@@ -3,7 +3,6 @@ using Autofac.Extensions.DependencyInjection;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using QuokkaDev.Saas.Abstractions;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace QuokkaDev.Saas.ServiceProvider.Tests
@@ -15,7 +14,7 @@ namespace QuokkaDev.Saas.ServiceProvider.Tests
         }
 
         [Fact(DisplayName = "ContainerBuilder should be created")]
-        public async Task ContainerBuilder_Should_Be_Created()
+        public void ContainerBuilder_Should_Be_Created()
         {
             // Arrange
             MultiTenantServiceProviderFactory<Tenant<int>, int> factory =
@@ -32,7 +31,7 @@ namespace QuokkaDev.Saas.ServiceProvider.Tests
         }
 
         [Fact(DisplayName = "ContainerBuilder should be created")]
-        public async Task ServiceProvider_Should_Be_Created()
+        public void ServiceProvider_Should_Be_Created()
         {
             // Arrange
             MultiTenantServiceProviderFactory<Tenant<int>, int> factory =
