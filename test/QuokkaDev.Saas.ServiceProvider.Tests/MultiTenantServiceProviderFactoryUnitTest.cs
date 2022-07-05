@@ -17,8 +17,7 @@ namespace QuokkaDev.Saas.ServiceProvider.Tests
         public void ContainerBuilder_Should_Be_Created()
         {
             // Arrange
-            MultiTenantServiceProviderFactory<Tenant<int>, int> factory =
-                new MultiTenantServiceProviderFactory<Tenant<int>, int>((tenant, containerBuilder) => { });
+            MultiTenantServiceProviderFactory<Tenant<int>, int> factory = new((_, _) => { });
 
             IServiceCollection services = new ServiceCollection();
 
@@ -34,8 +33,7 @@ namespace QuokkaDev.Saas.ServiceProvider.Tests
         public void ServiceProvider_Should_Be_Created()
         {
             // Arrange
-            MultiTenantServiceProviderFactory<Tenant<int>, int> factory =
-                new MultiTenantServiceProviderFactory<Tenant<int>, int>((tenant, containerBuilder) => { });
+            MultiTenantServiceProviderFactory<Tenant<int>, int> factory = new((_, __) => { });
 
             IServiceCollection services = new ServiceCollection();
 

@@ -1,5 +1,9 @@
-﻿using FluentAssertions;
+﻿using Autofac;
+using FluentAssertions;
+using HttpContextMoq;
+using Microsoft.AspNetCore.Http;
 using Moq;
+using QuokkaDev.Saas.Abstractions;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -12,18 +16,27 @@ namespace QuokkaDev.Saas.ServiceProvider.Tests
         }
 
         [Fact]
-        public async Task Test1()
+        public async Task Middleware_Should_Set_Service_Provider()
         {
             // Arrange
-            var mock = new Mock<object>();
-            mock.Setup(m => m.Equals(It.IsAny<object>())).Returns(true);
-            var obj = mock.Object;
 
+            var deleagetMock = new Mock<RequestDelegate>();
+            MultiTenantContainerMiddleware<Tenant<int>, int> middleware = new(deleagetMock.Object);
+            var httpContextMock = new HttpContextMock();
+
+            var lifeTimeMockChild = new Mock<ILifetimeScope>();
+            var lifeTimeMockParent = new Mock<ILifetimeScope>();
+            lifeTimeMockParent.Setup(m => m.BeginLifetimeScope()).Returns(lifeTimeMockChild.Object);
+            var containerMock = new Mock<MultiTenantContainer<Tenant<int>, int>>();
+            containerMock.Setup(m => m.GetCurrentTenantScope()).Returns(lifeTimeMockParent.Object);
             // Act
-            await Task.CompletedTask;
+            await middleware.Invoke(httpContextMock, () => containerMock.Object);
 
             // Assert
-            obj.Should().NotBeNull();
+            httpContextMock.RequestServices.Should().NotBeNull();
+            containerMock.Verify(m => m.GetCurrentTenantScope(), Times.Once);
+            lifeTimeMockParent.Verify(m => m.BeginLifetimeScope(), Times.Once);
+
         }
     }
 }

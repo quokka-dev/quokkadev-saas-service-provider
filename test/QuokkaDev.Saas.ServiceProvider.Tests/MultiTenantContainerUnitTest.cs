@@ -121,22 +121,50 @@ namespace QuokkaDev.Saas.ServiceProvider.Tests
         }
 
         [Fact(DisplayName = "Container should be properly disposed")]
-        public void Container_Should_Be_Properly_Disposed()
+        public async Task Container_Should_Be_Properly_Disposed()
+        {
+            // Arrange
+            FakeTenantAccessService service = new();
+            MultiTenantContainer<Tenant<int>, int> container, container2;
+            IContainer applicationContainer, applicationContainer2;
+            (container, applicationContainer) = GetMultiTenantContainer(service, (_, builder) => builder.RegisterType<FakeGenericService>().AsSelf().InstancePerLifetimeScope());
+            (container2, applicationContainer2) = GetMultiTenantContainer(service, (_, builder) => builder.RegisterType<FakeGenericService>().AsSelf().InstancePerLifetimeScope());
+
+            // Act
+            var scope1 = container.GetCurrentTenantScope();
+            container.Dispose();
+            var service1Invocation = () => scope1.Resolve<FakeGenericService>();
+
+            service.SetTenant("other-tenant");
+            var scope2 = container2.GetCurrentTenantScope();
+            await container2.DisposeAsync();
+            var service2Invocation = () => scope2.Resolve<FakeGenericService>();
+
+            // Assert
+            service1Invocation.Should().Throw<ObjectDisposedException>();
+            service2Invocation.Should().Throw<ObjectDisposedException>();
+        }
+
+        [Fact(DisplayName = "Events should be properly fired")]
+        public void Events_Should_Be_Properly_Fired()
         {
             // Arrange
             FakeTenantAccessService service = new();
             MultiTenantContainer<Tenant<int>, int> container;
             IContainer applicationContainer;
-            (container, applicationContainer) = GetMultiTenantContainer(service, (tenant, builder) => builder.RegisterType<FakeGenericService>().AsSelf().InstancePerLifetimeScope());
+            (container, applicationContainer) = GetMultiTenantContainer(service, (_, builder) => builder.RegisterType<FakeGenericService>().AsSelf().InstancePerLifetimeScope());
+
+            using var monitor = container.Monitor();
 
             // Act
             var scope1 = container.GetCurrentTenantScope();
-            var service1 = scope1.Resolve<FakeGenericService>();
+            scope1.Resolve<FakeGenericService>();
             container.Dispose();
-            var service2Invocation = () => scope1.Resolve<FakeGenericService>();
+
             // Assert
-            service1.Should().NotBeNull();
-            service2Invocation.Should().Throw<ObjectDisposedException>();
+            monitor.Should().Raise(nameof(container.ChildLifetimeScopeBeginning));
+            monitor.Should().Raise(nameof(container.ResolveOperationBeginning));
+            monitor.Should().Raise(nameof(container.CurrentScopeEnding));
         }
 
         private static (MultiTenantContainer<Tenant<int>, int> Container, IContainer RootContainer) GetMultiTenantContainer(FakeTenantAccessService service, Action<Tenant<int>, ContainerBuilder>? config = null)

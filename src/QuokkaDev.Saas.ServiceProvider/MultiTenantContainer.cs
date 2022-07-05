@@ -32,6 +32,13 @@ namespace QuokkaDev.Saas.ServiceProvider
 
         public IComponentRegistry ComponentRegistry => GetCurrentTenantScope().ComponentRegistry;
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public MultiTenantContainer()
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            //Only for test purposes
+        }
+
         public MultiTenantContainer(IContainer applicationContainer, Action<TTenant, ContainerBuilder> containerConfiguration)
         {
             _tenantContainerConfiguration = containerConfiguration;
@@ -55,7 +62,7 @@ namespace QuokkaDev.Saas.ServiceProvider
         /// Get the scope of the current tenant
         /// </summary>
         /// <returns></returns>
-        public ILifetimeScope GetCurrentTenantScope()
+        public virtual ILifetimeScope GetCurrentTenantScope()
         {
             return GetTenantScope(GetCurrentTenant().Identifier);
         }
