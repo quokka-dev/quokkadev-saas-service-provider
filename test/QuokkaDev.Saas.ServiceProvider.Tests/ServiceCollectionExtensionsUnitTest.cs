@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 using Moq;
 using QuokkaDev.Saas.Abstractions;
+using System.Linq;
 using Xunit;
 
 namespace QuokkaDev.Saas.ServiceProvider.Tests;
@@ -32,6 +33,7 @@ public class ServiceCollectionExtensionsUnitTest
         ServiceCollectionExtensions.UseMultiTenantContainer<Tenant<int>, int>(mock.Object);
 
         // Assert
-        mock.Invocations.Count.Should().Be(1);
+        mock.Invocations.Where(invocation => invocation.Method.Name.StartsWith("Use"))
+            .Single().Should().NotBeNull();
     }
 }
