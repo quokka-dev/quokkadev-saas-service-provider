@@ -1,4 +1,5 @@
 ﻿using Autofac;
+using Autofac.Extensions.DependencyInjection;
 using FluentAssertions;
 using HttpContextMoq;
 using Microsoft.AspNetCore.Http;
@@ -34,9 +35,9 @@ namespace QuokkaDev.Saas.ServiceProvider.Tests
 
             // Assert
             httpContextMock.RequestServices.Should().NotBeNull();
+            httpContextMock.RequestServices.Should().BeOfType<AutofacServiceProvider>();
             containerMock.Verify(m => m.GetCurrentTenantScope(), Times.Once);
             lifeTimeMockParent.Verify(m => m.BeginLifetimeScope(), Times.Once);
-
         }
     }
 }
